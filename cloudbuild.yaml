@@ -1,3 +1,41 @@
 steps:
+- name: gcr.io/cloud-builders/gcloud
+  entrypoint: 'bash'
+  args: [ '-c', 'gcloud secrets versions access latest --secret=github-ssh-key > /root/.ssh/id_github' ]
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
 - name: 'gcr.io/cloud-builders/git'
-  args: 
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    chmod 600 /root/.ssh/id_github
+    cat <<EOF >/root/.ssh/config
+    Hostname github.com
+    IdentityFile /root/.ssh/id_github
+    EOF
+    ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+- name: gcr.io/cloud-builders/git
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    echo "Cloning repo ..."
+    git clone https://github.com/IDiot29/leo-gcb
+    echo "Updating image tag version ..."
+    echo "mantapa" > mantap.txt
+    echo "Pushing changes to git config repo ..."
+    git config --global user.name IDiot29
+    git config --global user.email rivaldosilalahi13@gmail.com
+    git add -A
+    git commit -m "Updated with build ${BUILD_ID} from ${REPO_NAME} commit ${COMMIT_SHA}"
+    git push origin master
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
